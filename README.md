@@ -1,0 +1,1 @@
+# resource-registration-scripts

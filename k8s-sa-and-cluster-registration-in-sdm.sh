@@ -23,7 +23,19 @@ CLUSTER_RESOURCE_NAME=${CLUSTER_RESOURCE_NAME:-"$DEFAULT_CLUSTER_RESOURCE_NAME"}
 CURRENT_CLUSTER_ADDRESS=$(kubectl config view -o jsonpath="{.clusters[?(@.name == \"${CURRENT_CLUSTER}\"})].cluster.server}")
 
 CURRENT_CLUSTER_HOSTNAME=$(echo "$CURRENT_CLUSTER_ADDRESS" | awk -F[/:] '{print $4}')
-CURRENT_CLUSTER_PORT=$(echo "$CURRENT_CLUSTER_ADDRESS" | awk -F[/:] '{print $5}')
+CURRENT_CLUSTER_PORT=$(echo "$CURRENT_CLUSTER_ADDRESS" | awk -F[/:] '{
+  if (NF >= 5 && $5 != "") {
+    print $5
+  } else if ($1 == "https") {
+    print 443
+  } else if ($1 == "http") {
+    print 80
+  } else {
+    print "error_port_unknown"
+  }
+}')
+
+
 
 # Check if the cluster resource name is already in use.
 if [[ -n $(sdm admin clusters list --filter "name:${CLUSTER_RESOURCE_NAME}" | tail +2) ]]; then

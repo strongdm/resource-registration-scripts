@@ -8,10 +8,11 @@
 # 1) Read the script and understand what it does.
 # 2) Use kubectl to set the context to the cluster that you want to install in StrongDM.
 # 3) Log in to StrongDM.
-# 4) Set environment variables for NAMESPACE, SERVICE_ACCOUNT, and CLUSTER_RESOURCE_NAME if you want to use different values from these defaults.
+# 4) Set environment variables for NAMESPACE, SERVICE_ACCOUNT, CLUSTER_RESOURCE_TAGS, and CLUSTER_RESOURCE_NAME if you want to use different values from these defaults.
 
 NAMESPACE=${NAMESPACE:-"default"}
 SERVICE_ACCOUNT=${SERVICE_ACCOUNT:-"cluster-service-account"}
+CLUSTER_RESOURCE_TAGS=${CLUSTER_RESOURCE_TAGS:-""}
 
 set -e
 CURRENT_CONTEXT=$(kubectl config current-context)
@@ -34,8 +35,6 @@ CURRENT_CLUSTER_PORT=$(echo "$CURRENT_CLUSTER_ADDRESS" | awk -F[/:] '{
     print "error_port_unknown"
   }
 }')
-
-
 
 # Check if the cluster resource name is already in use.
 if [[ -n $(sdm admin clusters list --filter "name:${CLUSTER_RESOURCE_NAME}" | tail +2) ]]; then
@@ -67,7 +66,9 @@ The following will be established in the cluster:
   - Cluster Role Binding: ${SERVICE_ACCOUNT}-cluster-role-binding
   - Secret: ${SERVICE_ACCOUNT}-secret containing the long-lived API token for the service account.
 
- In StrongDM, the cluster will be registered as a new k8s-service resource named "${CLUSTER_RESOURCE_NAME}".
+In StrongDM, the cluster will be registered as a new k8s-service with these attributes:
+  - Name: ${CLUSTER_RESOURCE_NAME}
+  - Tags: ${CLUSTER_RESOURCE_TAGS}
 
 Proceed (y/n)?
 END_OF_PROMPT
@@ -168,7 +169,9 @@ sdm admin clusters add k8s-service \
   --hostname "${CURRENT_CLUSTER_HOSTNAME}" \
   --port "${CURRENT_CLUSTER_PORT}" \
   --healthcheck-namespace "${NAMESPACE}" \
+  --tags "${CLUSTER_RESOURCE_TAGS}" \
   "${CLUSTER_RESOURCE_NAME}"
 
 echo "New cluster resource created in StrongDM."
-sdm admin clusters list --filter "name:${CLUSTER_RESOURCE_NAME}"
+sdm admin clusters list --filter "name:${CLUSTER_RESOURCE_NAME}" --extended
+
